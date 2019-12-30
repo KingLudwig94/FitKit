@@ -7,7 +7,9 @@ class FitKit {
   /// In case user has declined permissions read will just return empty list for declined data types.
   static Future<bool> hasPermissions(List<DataType> types) async {
     return await _channel.invokeMethod('hasPermissions', {
-      "types": types.map((type) => _dataTypeToString(type)).toList(),
+      "types": types
+          .map((type) => type.string /* _dataTypeToString(type) */)
+          .toList(),
     });
   }
 
@@ -17,7 +19,9 @@ class FitKit {
   /// `await FitKit.requestPermissions(DataType.values)`
   static Future<bool> requestPermissions(List<DataType> types) async {
     return await _channel.invokeMethod('requestPermissions', {
-      "types": types.map((type) => _dataTypeToString(type)).toList(),
+      "types": types
+          .map((type) => type.string /* _dataTypeToString(type) */)
+          .toList(),
     });
   }
 
@@ -34,21 +38,22 @@ class FitKit {
     int limit,
   }) async {
     return await _channel.invokeListMethod('read', {
-      "type": _dataTypeToString(type),
+      "type": type.string, // dataTypeToString(type),
       "date_from": dateFrom?.millisecondsSinceEpoch ?? 1,
       "date_to": (dateTo ?? DateTime.now()).millisecondsSinceEpoch,
       "limit": limit,
-    }).then(
-      (response) => response.map((item) => FitData.fromJson(item)).toList(),
-    );
+    }).then((response) {
+      print(response);
+      return response.map((item) => FitData.fromJson(item)).toList();
+    });
   }
 
   static Future<FitData> readLast(DataType type) async {
     return await read(type, limit: 1)
         .then((results) => results.isEmpty ? null : results[0]);
   }
-
-  static String _dataTypeToString(DataType type) {
+}
+/* static String dataTypeToString(DataType type) {
     switch (type) {
       case DataType.HEART_RATE:
         return "heart_rate";
@@ -66,6 +71,32 @@ class FitKit {
         return "water";
       case DataType.SLEEP:
         return "sleep";
+      case DataType.BLOOD_GLUCOSE:
+        return "blood_glucose";
+    }
+    throw Exception('dataType $type not supported');
+  }
+
+  static DataType dataStringToType(String type) {
+    switch (type) {
+      case "heart_rate":
+        return DataType.HEART_RATE;
+      case "step_count":
+        return DataType.STEP_COUNT;
+      case "height":
+        return DataType.HEIGHT;
+      case "weight":
+        return DataType.WEIGHT;
+      case "distance":
+        return DataType.DISTANCE;
+      case "energy":
+        return DataType.ENERGY;
+      case "water":
+        return DataType.WATER;
+      case "sleep":
+        return DataType.SLEEP;
+      case "blood_glucose":
+        return DataType.BLOOD_GLUCOSE;
     }
     throw Exception('dataType $type not supported');
   }
@@ -79,5 +110,7 @@ enum DataType {
   DISTANCE,
   ENERGY,
   WATER,
-  SLEEP
+  SLEEP,
+  BLOOD_GLUCOSE,
 }
+ */

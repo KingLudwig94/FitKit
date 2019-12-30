@@ -2,6 +2,7 @@ package com.example.fit_kit
 
 import com.google.android.gms.fitness.FitnessActivities
 import com.google.android.gms.fitness.FitnessOptions
+import com.google.android.gms.fitness.data.HealthDataTypes
 import com.google.android.gms.fitness.data.DataType
 import com.google.android.gms.fitness.data.Session
 
@@ -16,6 +17,7 @@ fun String.fromDartType(): Type {
         "energy" -> Type.Sample(DataType.TYPE_CALORIES_EXPENDED)
         "water" -> Type.Sample(DataType.TYPE_HYDRATION)
         "sleep" -> Type.Activity(FitnessActivities.SLEEP)
+        "blood_glucose" -> Type.Sample(HealthDataTypes.TYPE_BLOOD_GLUCOSE)
         else -> throw Exception("type $this is not supported")
     }
 }

@@ -45,7 +45,7 @@ class _MyAppState extends State<MyApp> {
     results.clear();
 
     try {
-      permissions = await FitKit.requestPermissions(DataType.values);
+      permissions = await FitKit.requestPermissions(DataType.values.toList());
       if (!permissions) {
         result = 'requestPermissions: failed';
       } else {
@@ -72,7 +72,7 @@ class _MyAppState extends State<MyApp> {
 
     try {
       await FitKit.revokePermissions();
-      permissions = await FitKit.hasPermissions(DataType.values);
+      permissions = await FitKit.hasPermissions(DataType.values.toList());
       result = 'revokePermissions: success';
     } catch (e) {
       result = 'revokePermissions: $e';
@@ -83,7 +83,7 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> hasPermissions() async {
     try {
-      permissions = await FitKit.hasPermissions(DataType.values);
+      permissions = await FitKit.hasPermissions(DataType.values.toList());
     } catch (e) {
       result = 'hasPermissions: $e';
     }

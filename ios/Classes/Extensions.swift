@@ -34,11 +34,13 @@ extension HKSampleType {
                 }
             case "sleep":
                 return HKSampleType.categoryType(forIdentifier: .sleepAnalysis)
+            case "blood_glucose":
+                return HKSampleType.quantityType(forIdentifier: .bloodGlucose)
             default:
                 return nil
             }
         }() else {
-            throw "type \"\(type)\" is not supported";
+            throw "type \"\(type)\" is not supported"
         }
         return sampleType
     }
@@ -47,9 +49,9 @@ extension HKSampleType {
 extension HKUnit {
     public static func fromDartType(type: String) throws -> HKUnit {
         guard let unit: HKUnit = {
-            switch (type) {
+            switch type {
             case "heart_rate":
-                return HKUnit.init(from: "count/min")
+                return HKUnit(from: "count/min")
             case "step_count":
                 return HKUnit.count()
             case "height":
@@ -64,12 +66,44 @@ extension HKUnit {
                 return HKUnit.liter()
             case "sleep":
                 return HKUnit.minute() // this is ignored
+            case "blood_glucose":
+                return HKUnit(from: "mg/dl")
             default:
                 return nil
             }
         }() else {
-            throw "type \"\(type)\" is not supported";
+            throw "type \"\(type)\" is not supported"
         }
         return unit
+    }
+}
+
+extension HKSampleType {
+    public static func toDartType(type: HKSampleType) -> String {
+        let sampleType: String 
+            switch type.identifier {
+            case "HKQuantityTypeIdentifierHeartRate":
+                return "heart_rate"
+            case "HKQuantityTypeIdentifierStepCount":
+                return "step_count"
+            case "HKQuantityTypeIdentifierHeight":
+                return"height"
+            case "HKQuantityTypeIdentifierBodyMass":
+                return "weight"
+            case "HKQuantityTypeIdentifierDistanceWalkingRunning":
+                return "distance"
+            case "HKQuantityTypeIdentifierActiveEnergyBurned":
+                return"energy"
+            case "HKQuantityTypeIdentifierDietaryWater":
+                return "water"
+            case "HKCategoryTypeIdentifierSleepAnalysis":
+                return "sleep"
+            case "HKQuantityTypeIdentifierBloodGlucose":
+                return"blood_glucose"
+            default:
+                return ""
+            
+        }
+        return sampleType
     }
 }
