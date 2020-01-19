@@ -23,5 +23,5 @@ class FitData {
 
   @override
   String toString() =>
-      'FitData(value: $value $unit, dateFrom: $dateFrom, dateTo: $dateTo, source: $source, userEntered: $userEntered, dataType. $dataType)';
+      'FitData(value: $value $unit, dateFrom: $dateFrom, dateTo: $dateTo, source: $source, userEntered: $userEntered, dataType: $dataType)';
 }
