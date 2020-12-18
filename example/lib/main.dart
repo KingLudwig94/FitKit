@@ -41,6 +41,21 @@ class _MyAppState extends State<MyApp> {
     hasPermissions();
   }
 
+  Future<void> subscribe() async {
+    results.clear();
+    try {
+      FitKit.subscribe(
+          types: DataType.values.toList(),
+          callback: (List<FitData> v) {
+            print('SUBDATA: ' + v.toString());
+            setState(() {});
+          });
+    } catch (e) {
+      print(e);
+    }
+    print('subOK');
+  }
+
   Future<void> read() async {
     results.clear();
 
@@ -214,6 +229,14 @@ class _MyAppState extends State<MyApp> {
             textColor: Colors.white,
             onPressed: () => revokePermissions(),
             child: Text('Revoke permissions'),
+          ),
+        ),
+        Expanded(
+          child: FlatButton(
+            color: Theme.of(context).accentColor,
+            textColor: Colors.white,
+            onPressed: () => subscribe(),
+            child: Text('Sub'),
           ),
         ),
       ],

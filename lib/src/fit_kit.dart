@@ -2,6 +2,8 @@ part of fit_kit;
 
 class FitKit {
   static const MethodChannel _channel = const MethodChannel('fit_kit');
+  static Stream<List<FitData>> _eventsFetch;
+  static const _eventChannel = const EventChannel("fit_kit_events");
 
   /// iOS isn't completely supported by HealthKit, false means no, true means user has approved or declined permissions.
   /// In case user has declined permissions read will just return empty list for declined data types.
@@ -37,20 +39,53 @@ class FitKit {
     DateTime dateTo,
     int limit,
   }) async {
-    return await _channel.invokeListMethod('read', {
-      "type": type.string, // dataTypeToString(type),
-      "date_from": dateFrom?.millisecondsSinceEpoch ?? 1,
-      "date_to": (dateTo ?? DateTime.now()).millisecondsSinceEpoch,
-      "limit": limit,
-    }).then((response) {
-      print(response);
-      return response.map((item) => FitData.fromJson(item)).toList();
-    });
+    List<FitData> out;
+    try {
+      var readData = await _channel.invokeListMethod('read', {
+        "type": type.string, // dataTypeToString(type),
+        "date_from": dateFrom?.millisecondsSinceEpoch ?? 1,
+        "date_to": (dateTo ?? DateTime.now()).millisecondsSinceEpoch,
+        "limit": limit,
+      });
+
+      print(readData);
+      out = readData.map((item) => FitData.fromJson(item)).toList();
+    } catch (e) {
+      print(e);
+      out = [];
+    }
+    return out;
   }
 
   static Future<FitData> readLast(DataType type) async {
     return await read(type, limit: 1)
         .then((results) => results.isEmpty ? null : results[0]);
+  }
+
+  static Future<bool> subscribe(
+      {List<DataType> types, Function callback, bool ignoreManualData}) {
+    if (_eventsFetch == null) {
+      _eventsFetch = _eventChannel.receiveBroadcastStream().map((response) =>
+          (response as List<dynamic>)
+              .map((item) => FitData.fromJson(item))
+              .toList());
+
+      _eventsFetch.listen((List<FitData> v) {
+        callback(v);
+      });
+    }
+    Completer completer = new Completer<bool>();
+
+    _channel.invokeMethod('subscribe', {
+      "types": types.map((type) => type.string).toList(),
+      "ignoreManualData": ignoreManualData ?? false
+    }).then((dynamic status) {
+      completer.complete(status);
+    }).catchError((dynamic e) {
+      completer.completeError(e.details);
+    });
+
+    return completer.future;
   }
 }
 /* static String dataTypeToString(DataType type) {

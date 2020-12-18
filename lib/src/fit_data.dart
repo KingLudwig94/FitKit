@@ -19,7 +19,7 @@ class FitData {
         source = json['source'],
         userEntered = json['user_entered'],
         dataType = DataType.valueOf(json['type']),
-        unit = json['unit'] ?? DataType.valueOf(json['type'].unit);
+        unit = json['unit'] ?? DataType.valueOf(json['type']).unit;
 
   @override
   String toString() =>
