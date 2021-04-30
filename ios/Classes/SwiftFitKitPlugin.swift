@@ -53,6 +53,8 @@ public class SwiftFitKitPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             } else if call.method == "subscribe" {
                 let request = try SubscribeRequest.fromCall(call: call)
                 subscribe(request: request, result: result)
+            } else if call.method == "unsubscribe" {
+                unsubscribe(result: result)
             } else {
                 result(FlutterMethodNotImplemented)
             }
@@ -141,10 +143,23 @@ public class SwiftFitKitPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         }
     }
 
+    private func unsubscribe(result: @escaping FlutterResult) {
+        healthStore!.disableAllBackgroundDelivery(completion: { (succeeded: Bool, _: Error?) in
+
+            if succeeded {
+                debugPrint("Disabled background delivery.")
+            } else {
+                debugPrint("Failed to disable background delivery.")
+                result(false)
+            }
+        })
+        result(true)
+    }
+
     private func requestAuthorization(sampleTypes: [HKSampleType], completion: @escaping (Bool, FlutterError?) -> Void) {
         healthStore!.requestAuthorization(toShare: nil, read: Set(sampleTypes)) { success, error in
             guard success else {
-                completion(false, FlutterError(code: self.TAG, message: "Error \(error?.localizedDescription ?? "empty")", details: nil))
+                completion(false, FlutterError(code: self.TAG, message: "Error \(error ?? "empty")", details: nil))
                 return
             }
 
@@ -158,46 +173,46 @@ public class SwiftFitKitPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             predicates.append(NSPredicate(format: "metadata.%K != YES", HKMetadataKeyWasUserEntered))
         }
         let compoundPredicate = NSCompoundPredicate(type: .and, subpredicates: predicates)
-
+        var success = true
         for sampleType in request.sampleTypes {
             let alreadySubscribe = UserDefaults.standard.bool(forKey: "fit_kit_subscribe_\(sampleType.type)")
+            print(alreadySubscribe)
+            // if !alreadySubscribe {
+            let query = HKObserverQuery(sampleType: sampleType.type, predicate: compoundPredicate) {
+                _, completionHandler, error in
 
-            if !alreadySubscribe {
-                let query = HKObserverQuery(sampleType: sampleType.type, predicate: compoundPredicate) {
-                    _, completionHandler, error in
-
-                    if error != nil {
-                        result(FlutterError(code: self.TAG, message: "*** An error occured while setting up the observer. \(error?.localizedDescription) ***", details: error))
-                        abort()
-                    }
-
-                    debugPrint("observer query update handler called for type \(sampleType.type), error: \(error)")
-
-                    if #available(iOS 9.0, *) {
-                        self.readNewSamples(sampleType: sampleType.type, unit: sampleType.unit, result: result)
-                    } else {
-                        self.readNewSamplesDeprecated(sampleType: sampleType.type, unit: sampleType.unit, result: result)
-                    }
-
-                    completionHandler()
+                if error != nil {
+                    result(FlutterError(code: self.TAG, message: "*** An error occured while setting up the observer. \(error) ***", details: error))
+                    return
                 }
 
-                healthStore!.enableBackgroundDelivery(for: sampleType.type, frequency: .immediate, withCompletion: { (succeeded: Bool, error: Error?) in
+                debugPrint("observer query update handler called for type \(sampleType.type), error: \(error)")
 
-                    if succeeded {
-                        debugPrint("Enabled background delivery for \(sampleType.type)")
-                    } else {
-                        debugPrint("Failed to enable background delivery for \(sampleType.type). Error = \(error)")
-                    }
-                })
+                if #available(iOS 9.0, *) {
+                    self.readNewSamples(sampleType: sampleType.type, unit: sampleType.unit, result: result)
+                } else {
+                    self.readNewSamplesDeprecated(sampleType: sampleType.type, unit: sampleType.unit, result: result)
+                }
 
-                healthStore!.execute(query)
-
-                UserDefaults.standard.set(true, forKey: "fit_kit_subscribe_\(sampleType.type)")
+                completionHandler()
             }
-        }
 
-        result(true)
+            healthStore!.enableBackgroundDelivery(for: sampleType.type, frequency: .immediate, withCompletion: { (succeeded: Bool, error: Error?) in
+
+                if succeeded {
+                    debugPrint("Enabled background delivery for \(sampleType.type)")
+                } else {
+                    debugPrint("Failed to enable background delivery for \(sampleType.type). Error = \(error)")
+                    success = false
+                }
+            })
+
+            healthStore!.execute(query)
+
+            UserDefaults.standard.set(true, forKey: "fit_kit_subscribe_\(sampleType.type)")
+            // }
+        }
+        result(success)
     }
 
     @available(iOS 9.0, *)
@@ -214,7 +229,10 @@ public class SwiftFitKitPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         let predicate = HKQuery.predicateForSamples(withStart: start, end: now, options: .strictStartDate)
         let query = HKAnchoredObjectQuery(type: sampleType, predicate: predicate, anchor: anchor, limit: HKObjectQueryNoLimit) { _, samplesOrNil, _, newAnchor, errorOrNil in
             guard let samples = samplesOrNil else {
-                fatalError("*** An error occurred during the initial query: \(errorOrNil!.localizedDescription) ***")
+                print("Error in fitkit subscription: \(errorOrNil)")
+                // result(FlutterError(code: self.TAG, message: "Results are null", details: errorOrNil))
+                return
+                    // fatalError("*** An error occurred during the initial query: \(errorOrNil) ***")
             }
 
             anchor = newAnchor!
@@ -250,7 +268,10 @@ public class SwiftFitKitPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         let predicate = HKQuery.predicateForSamples(withStart: start, end: now, options: .strictStartDate)
         let query = HKAnchoredObjectQuery(type: sampleType, predicate: predicate, anchor: 0, limit: HKObjectQueryNoLimit) { _, samplesOrNil, newAnchor, errorOrNil in
             guard let samples = samplesOrNil else {
-                fatalError("*** An error occurred during the initial query: \(errorOrNil!.localizedDescription) ***")
+                print("Error in fitkit subscription: \(errorOrNil)")
+                // result(FlutterError(code: self.TAG, message: "Results are null", details: errorOrNil))
+                return
+                    // fatalError("*** An error occurred during the initial query: \(errorOrNil) ***")
             }
 
             anchor = newAnchor

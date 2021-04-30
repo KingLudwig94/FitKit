@@ -65,14 +65,22 @@ class FitKit {
   static Future<bool> subscribe(
       {List<DataType> types, Function callback, bool ignoreManualData}) {
     if (_eventsFetch == null) {
-      _eventsFetch = _eventChannel.receiveBroadcastStream().map((response) =>
-          (response as List<dynamic>)
-              .map((item) => FitData.fromJson(item))
-              .toList());
+      try {
+        _eventsFetch = _eventChannel.receiveBroadcastStream().map((response) =>
+            (response as List<dynamic>)
+                .map((item) => FitData.fromJson(item))
+                .toList());
 
-      _eventsFetch.listen((List<FitData> v) {
-        callback(v);
-      });
+        _eventsFetch.listen((List<FitData> v) {
+          try {
+            callback(v);
+          } catch (e) {
+            print('Error callback Health sub: $e');
+          }
+        });
+      } catch (e) {
+        print('subscribe Health error: $e');
+      }
     }
     Completer completer = new Completer<bool>();
 
@@ -87,7 +95,12 @@ class FitKit {
 
     return completer.future;
   }
+
+  static Future<bool> unsubscribe() {
+    return _channel.invokeMethod('unsubscribe');
+  }
 }
+
 /* static String dataTypeToString(DataType type) {
     switch (type) {
       case DataType.HEART_RATE:
